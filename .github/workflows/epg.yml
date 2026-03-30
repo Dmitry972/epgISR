@@ -9,32 +9,42 @@ jobs:
   epg:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install EPG
+      - name: Clone iptv-org epg
+        run: git clone https://github.com/iptv-org/epg.git
+
+      - name: Install dependencies
         run: |
-          git clone https://github.com/iptv-org/epg.git
           cd epg
           npm install
 
-      - name: Generate EPG
+      - name: Install Playwright browsers
+        run: |
+          cd epg
+          npx playwright install --with-deps
+
+      - name: Generate guide.xml
         run: |
           cd epg
           cp ../myepgrenew.xml .
           npm run grab -- --channels=myepgrenew.xml --output=guide.xml
           cp guide.xml ../guide.xml
 
-      - name: Commit guide
+      - name: Commit & Push
         run: |
           git config user.name "epg-bot"
           git config user.email "bot@users.noreply.github.com"
           git add guide.xml
-          git commit -m "update epg" || exit 0
+          git commit -m "Update EPG" || exit 0
           git push
